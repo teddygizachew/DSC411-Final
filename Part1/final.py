@@ -1,3 +1,4 @@
+from enum import Enum
 import pandas as pd
 from sklearn.tree import DecisionTreeClassifier, plot_tree
 from sklearn.model_selection import train_test_split, cross_val_score
@@ -10,6 +11,11 @@ import time
 from kneed import KneeLocator
 from sklearn.preprocessing import normalize
 import matplotlib as mpl
+
+
+class ClusteringMethod(Enum):
+    ELBOW = "Elbow"
+    SILHOUETTE = "Silhouette"
 
 
 def read_data(filepath):
@@ -89,21 +95,27 @@ def classify(data):
         plt.show()
 
 
-def cluster(data):
+def cluster(data, method):
+    """
+    Elbow Method Execution Time: --- 14.488507986068726 seconds ---
+    Silhouette Execution Time: --- 192.42863178253174 seconds ---
+    """
     # Drop class label
     data = data.drop(["census_income"], axis=1)
 
     features_normalized = convert_to_numerical(data)
-
-    # start_time = time.time()
-    # k = elbow_method(features_normalized)
-    # print("Elbow Method Execution Time: --- %s seconds ---" % (time.time() - start_time))
-    # print(f'Elbow Method k -> {k}')
-
-    # start_time = time.time()
-    # k = silhouette_method(features_normalized)
-    # print("Silhouette Execution Time: --- %s seconds ---" % (time.time() - start_time))
-    # print(f'Silhouette k -> {k}')
+    if method == ClusteringMethod.ELBOW:
+        start_time = time.time()
+        k = elbow_method(features_normalized)
+        print("Elbow Method Execution Time: --- %s seconds ---" % (time.time() - start_time))
+        print(f'Elbow Method k -> {k}')
+    elif method == ClusteringMethod.SILHOUETTE:
+        start_time = time.time()
+        k = silhouette_method(features_normalized)
+        print("Silhouette Execution Time: --- %s seconds ---" % (time.time() - start_time))
+        print(f'Silhouette k -> {k}')
+    else:
+        print(f'Cluster method {method} does not exist!')
 
     visualize(k=2, features_normalized=features_normalized)
     visualize(k=3, features_normalized=features_normalized)
@@ -207,25 +219,22 @@ def elbow_method(data):
 
 
 def main():
-    filepath = "adult.csv"
-    data = read_data(filepath)
+    data = read_data("adult.csv")
 
     # clean data
     data_cleaned = clean_data(data)
 
-    # classify(data_cleaned)
+    # classify data
+    classify(data_cleaned)
 
-    # cluster(data_cleaned)
+    # cluster
+    cluster(data_cleaned, method=ClusteringMethod.ELBOW)
 
     # export transformed data set to csv
-    data_cleaned.to_csv("projectPart1.csv", sep=',', index=False)
+    output_filename = "projectPart1.csv"
+    data_cleaned.to_csv(output_filename, sep=',', index=False)
+    print(f"Exported cleaned data to {output_filename}")
 
 
 if __name__ == '__main__':
     main()
-
-
-'''
-Elbow Method Execution Time: --- 14.488507986068726 seconds ---
-Silhouette Execution Time: --- 192.42863178253174 seconds ---
-'''
