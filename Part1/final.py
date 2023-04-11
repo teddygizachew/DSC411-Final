@@ -231,7 +231,7 @@ def main():
     cluster(data_cleaned, method=ClusteringMethod.ELBOW)
 
     # export transformed data set to csv
-    output_filename = "projectPart1.csv"
+    output_filename = "projectPart1Output.csv"
     data_cleaned.to_csv(output_filename, sep=',', index=False)
     print(f"Exported cleaned data to {output_filename}")
 
