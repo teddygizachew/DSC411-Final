@@ -1,5 +1,6 @@
 from enum import Enum
 import pandas as pd
+from sklearn.ensemble import IsolationForest
 from sklearn.tree import DecisionTreeClassifier, plot_tree
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.metrics import classification_report
@@ -261,10 +262,71 @@ def dbscan_outliers(data):
     epsilon = 2000 """
 
     # use DBSCAN to generate labels for outlier y/n
-    model = DBSCAN(eps=2000, min_samples=40).fit(temp_data)
+    model = DBSCAN(eps=2000, min_samples=400).fit(temp_data)
     outliers_df = model.labels_
 
+    data['dbscan_outliers'] = outliers_df
+
+    outlier_plot_dbscan(data, "DBSCAN")
+
     return outliers_df
+
+
+def outlier_plot_dbscan(data, outlier_method_name):
+    print(f'Outlier Method: {outlier_method_name}')
+
+    print(f"Number of non anomalous values  {len(data[data['dbscan_outliers'] != -1])}")
+
+    num_outliers = (data['dbscan_outliers'] == -1).sum()
+    num_total = data.shape[0]
+    percent_outliers = (num_outliers / num_total) * 100
+
+    print(f"Number of outliers detected: {num_outliers}")
+    print(f'Total Number of Values: {len(data)}')
+    print(f"Percentage of outliers detected: {percent_outliers:.2f}%")
+
+
+def convert_to_numerical_iso_forest(data):
+    # Perform one-hot encoding on the categorical variables (for classification purposes)
+    cat_vars = ['age', 'workclass', 'mariatal_status', 'occupation', 'relationship', 'race', 'sex', 'native_country']
+    for var in cat_vars:
+        cat_list = pd.get_dummies(data[var], prefix=var)
+        data = data.join(cat_list)
+
+    data = data.drop(cat_vars, axis=1)
+    return data
+
+
+def isolation_forest(data):
+    data = convert_to_numerical_iso_forest(data)
+    anomaly_inputs = ['hours_per_week', 'education_numeric']
+    model = IsolationForest(contamination=float(0.1), random_state=42)
+    model.fit(data[anomaly_inputs])
+
+    data['iso_forest_anomaly_score'] = model.decision_function(data[anomaly_inputs])
+    data['iso_forest_outliers'] = model.predict(data[anomaly_inputs])
+
+    # export transformed data set to csv
+    output_filename = "IsolationForest.csv"
+    data.to_csv(output_filename, sep=',', index=False)
+
+    outlier_plot(data, "IsolationForest")
+
+    return model.predict(data[anomaly_inputs])
+
+
+def outlier_plot(data, outlier_method_name):
+    print(f'Outlier Method: {outlier_method_name}')
+
+    print(f"Number of non anomalous values  {len(data[data['iso_forest_outliers'] == 1])}")
+
+    num_outliers = (data['iso_forest_outliers'] == -1).sum()
+    num_total = data.shape[0]
+    percent_outliers = (num_outliers / num_total) * 100
+
+    print(f"Number of outliers detected: {num_outliers}")
+    print(f'Total Number of Values: {len(data)}')
+    print(f"Percentage of outliers detected: {percent_outliers:.2f}%")
 
 
 def main():
@@ -276,21 +338,19 @@ def main():
     data = data_cleaned.copy()
 
     # classify data
-    classify(data_cleaned)
+    # classify(data_cleaned)
 
     # cluster
-    cluster(data_cleaned, method=ClusteringMethod.ELBOW)
+    # cluster(data_cleaned, method=ClusteringMethod.ELBOW)
 
     # run DBSCAN outlier detection
-    outliers_list = dbscan_outliers(data_cleaned)
+    dbscan_outliers_list = dbscan_outliers(data_cleaned)
 
-    # add outlier label to a new column in dataset for side-by-side comparison
-    data['dbscan_outliers'] = outliers_list
+    iso_forest_list = isolation_forest(data_cleaned)
 
-    # print dbscan outliers to terminal for quick access
-    outliers = data[data['dbscan_outliers'] == -1]
-    print("\nDBSCAN-Identified Outliers")
-    print(outliers)
+    # add outlier labels to output dataset for side-by-side comparison
+    data['dbscan_outliers'] = dbscan_outliers_list
+    data['iso_forest_outliers'] = iso_forest_list
 
     # export transformed data set to csv
     output_filename = "projectPart2Output.csv"
