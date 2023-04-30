@@ -20,16 +20,17 @@ class ClusteringMethod(Enum):
 
 def read_data(filepath):
     # import data
-    data = pd.read_csv(filepath, header=0)
+    data = pd.read_csv(filepath, header=None,
+                       names=['age', 'workclass', 'fnlwgt', 'education', 'education_numeric', 'marital_status',
+                              'occupation', 'relationship', 'race', 'sex', 'capital_gain', 'capital_loss',
+                              'hours_per_week', 'native_country', 'census_income'])
     return data
 
 
 # clean data for classification task
 def clean_data(unclean_data):
-    # drop fnlwgt column as it is irrelevant to the tasks
-    # definition: number of people census believes entry represents
-    # in other words, the amount of people that can be categorized by the set
-    cleaned_data = unclean_data.drop(columns=['fnlwgt', 'eduacation'])
+    # drop 'education', as it is a redundant feature with 'education-numeric' when normalized
+    cleaned_data = unclean_data.drop(columns=['eduacation'])
 
     # replace missing values:
     # replace missing workclass and occupation with 'unemployed', as per analysis
@@ -37,23 +38,16 @@ def clean_data(unclean_data):
     cleaned_data['workclass'] = cleaned_data['workclass'].replace('?', 'Unemployed')
     cleaned_data['occupation'] = cleaned_data['occupation'].replace('?', 'Unemployed')
 
-    # replace missing 'native_country' with the most common response
+    # replace missing 'native_country' with a new value called 'other'
     # analysis returned no exact reasoning for missing values
-    cleaned_data['native_country'] = cleaned_data['native_country'].replace('?',
-                                                                            cleaned_data['native_country'].mode().iloc[
-                                                                                0])
-
-    # binning 'ages' into with pd.cut
-    # tested with # of bins at 4, 5, 6, 7, 8, and 9
-    # 7 bins separated ages into more common life-stages
-    # cleaned_data['age'] = pd.cut(cleaned_data['age'], 7)
+    cleaned_data['native_country'] = cleaned_data['native_country'].replace(' ?', 'Other')
 
     return cleaned_data
 
 
 def classify(data):
     # Perform one-hot encoding on the categorical variables (for classification purposes)
-    cat_vars = ['age', 'workclass', 'mariatal_status', 'occupation', 'relationship', 'race', 'sex', 'native_country']
+    cat_vars = ['age', 'workclass', 'marital_status', 'occupation', 'relationship', 'race', 'sex', 'native_country']
     for var in cat_vars:
         cat_list = pd.get_dummies(data[var], prefix=var)
         data = data.join(cat_list)
@@ -151,7 +145,7 @@ def visualize(k, features_normalized):
 def convert_to_numerical(data):
     # Convert categorical variables to numerical variables
     le = LabelEncoder()
-    columns_to_encode = ['workclass', 'mariatal_status', 'occupation', 'relationship', 'race', 'sex', 'native_country']
+    columns_to_encode = ['workclass', 'marital_status', 'occupation', 'relationship', 'race', 'sex', 'native_country']
 
     for column in columns_to_encode:
         data[column] = le.fit_transform(data[column].astype(str))
@@ -161,7 +155,7 @@ def convert_to_numerical(data):
 
     # One-hot encoded data
     data_one_hot = data.copy()
-    attributes = ['workclass', 'mariatal_status', 'occupation', 'relationship', 'race', 'sex', 'native_country']
+    attributes = ['workclass', 'marital_status', 'occupation', 'relationship', 'race', 'sex', 'native_country']
     data = pd.get_dummies(data_one_hot, columns=attributes, prefix=attributes)
 
     # Standardize numerical variables
@@ -219,7 +213,7 @@ def elbow_method(data):
 
 
 def main():
-    data = read_data("adult.csv")
+    data = read_data("https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data")
 
     # clean data
     data_cleaned = clean_data(data)
