@@ -357,7 +357,7 @@ def rule_generation(data):
     print("RIPPER Rule Precision for 'income is <=50K': " + str(round((precision * 100), 2)) + "%")
     print("RIPPER Rule Recall for 'income is <=50K': " + str(round((recall * 100), 2)) + "%")
 
-    # train a second model to compare precision between the two predictors
+    '''# train a second model to compare precision between the two predictors
     # Split the data into training and testing sets
     X_train, X_test, y_train, y_test = train_test_split(data, data['census_income'],
                                                         test_size=0.4, random_state=40)
@@ -373,7 +373,7 @@ def rule_generation(data):
     recall = mdl.score(X_test2, check_feature, recall_score)
     print()
     print("RIPPER Rule precision for 'income is >50K': " + str(round((precision * 100), 2)) + "%")
-    print("RIPPER Rule recall for 'income is >50K': " + str(round((recall * 100), 2)) + "%")
+    print("RIPPER Rule recall for 'income is >50K': " + str(round((recall * 100), 2)) + "%")'''
     print()
 
 
@@ -440,8 +440,6 @@ def main():
 
     # run DBSCAN outlier detection
     dbscan_outliers_list = dbscan_outliers(data_cleaned)
-    dbscan_outliers_list[dbscan_outliers_list < 0] = True
-    dbscan_outliers_list[dbscan_outliers_list >= 0] = False
 
     iso_forest_list = isolation_forest(data_cleaned)
 
