@@ -30,7 +30,7 @@ def read_data(filepath):
 # clean data for classification task
 def clean_data(unclean_data):
     # drop 'education', as it is a redundant feature with 'education-numeric' when normalized
-    cleaned_data = unclean_data.drop(columns=['eduacation'])
+    cleaned_data = unclean_data.drop(columns=['education'])
 
     # replace missing values:
     # replace missing workclass and occupation with 'unemployed', as per analysis
