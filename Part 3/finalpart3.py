@@ -15,6 +15,9 @@ from sklearn.preprocessing import normalize
 from sklearn.tree import DecisionTreeClassifier, plot_tree
 import wittgenstein as wt
 from sklearn.metrics import precision_score, recall_score
+from sklearn.naive_bayes import GaussianNB
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
 
 
 class ClusteringMethod(Enum):
@@ -354,7 +357,6 @@ def rule_generation(data):
     print("RIPPER Rule Precision for 'income is <=50K': " + str(round((precision * 100), 2)) + "%")
     print("RIPPER Rule Recall for 'income is <=50K': " + str(round((recall * 100), 2)) + "%")
 
-    '''
     # train a second model to compare precision between the two predictors
     # Split the data into training and testing sets
     X_train, X_test, y_train, y_test = train_test_split(data, data['census_income'],
@@ -368,9 +370,58 @@ def rule_generation(data):
 
     # perform the prediction
     precision = mdl.score(X_test2, check_feature, precision_score)
+    recall = mdl.score(X_test2, check_feature, recall_score)
     print()
-    print("RIPPER Rule precision for 'income is >50K': " + str(round((precision * 100), 2)) + "%")'''
+    print("RIPPER Rule precision for 'income is >50K': " + str(round((precision * 100), 2)) + "%")
+    print("RIPPER Rule recall for 'income is >50K': " + str(round((recall * 100), 2)) + "%")
     print()
+
+
+def naive_bayes(data):
+    # pd.set_option('display.max_rows', None)
+    # pd.set_option('display.max_columns', None)
+
+    # Perform one-hot encoding on the categorical variables (for classification purposes)
+    cat_vars = ['workclass', 'marital_status', 'occupation', 'relationship', 'race', 'sex', 'native_country']
+    for var in cat_vars:
+        cat_list = pd.get_dummies(data[var], prefix=var)
+        data = data.join(cat_list)
+
+    data = data.drop(cat_vars, axis=1)
+
+    # Drop class label
+    data['census_income'] = data['census_income'].apply(lambda x: 0 if x == ' <=50K' else 1)
+
+    x_train, x_test, y_train, y_test = train_test_split(data, data["census_income"], test_size=0.2)
+
+    # gaussian classifier
+    mdl = GaussianNB().fit(x_train, y_train)
+
+    print(f"Model accuracy: {mdl.score(x_test, y_test) * 100:.2f}%")
+
+    results = pd.DataFrame({'actual': y_test, 'predicted': mdl.predict(x_test)})
+    print(results.head())
+
+    # Predict on test data
+    y_pred = mdl.predict(x_test)
+
+    # Create confusion matrix
+    cm = confusion_matrix(y_test, y_pred)
+
+    # Plot confusion matrix
+    sns.heatmap(cm, annot=True, cmap='Blues', fmt='g')
+    plt.title('Confusion matrix for Naive Bayes classifier')
+    plt.xlabel('Predicted')
+    plt.ylabel('Actual')
+    plt.show()
+
+    print("\nTest Data:")
+    print(y_test.head(7))
+    print("\nPredictions:")
+    print(mdl.predict(x_test)[:7])
+    print("\nProbability of predictions:")
+    print(mdl.predict_proba(x_test)[:7])
+    print(f"\nCross val score: {cross_val_score(GaussianNB(), x_train, y_train, cv=3)}")
 
 
 def main():
@@ -389,6 +440,8 @@ def main():
 
     # run DBSCAN outlier detection
     dbscan_outliers_list = dbscan_outliers(data_cleaned)
+    dbscan_outliers_list[dbscan_outliers_list < 0] = True
+    dbscan_outliers_list[dbscan_outliers_list >= 0] = False
 
     iso_forest_list = isolation_forest(data_cleaned)
 
@@ -398,6 +451,9 @@ def main():
 
     # run the rule-based classification task
     rule_generation(data)
+
+    # run the naive bayes classification
+    naive_bayes(data)
 
     # export transformed data set to csv
     output_filename = "projectPart3Output.csv"
