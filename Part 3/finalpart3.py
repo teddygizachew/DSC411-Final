@@ -18,7 +18,8 @@ from sklearn.metrics import precision_score, recall_score
 from sklearn.naive_bayes import GaussianNB
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
-
+from keras.models import Sequential
+from keras.layers import Dense
 
 class ClusteringMethod(Enum):
     ELBOW = "Elbow"
@@ -422,7 +423,40 @@ def naive_bayes(data):
     print("\nProbability of predictions:")
     print(mdl.predict_proba(x_test)[:7])
     print(f"\nCross val score: {cross_val_score(GaussianNB(), x_train, y_train, cv=3)}")
+    
+def ann(data):
+    # split data into features (X) and target (y)
+    X = data.drop(columns=['census_income'])
+    y = data['census_income']
 
+    # convert categorical variables to dummy variables
+    X = pd.get_dummies(X)
+
+    # split data into train and test sets
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+    # build a Sequential model
+    model = Sequential()
+    # add input layer with the number of features in X_train
+    model.add(Dense(64, input_dim=X_train.shape[1], activation='relu'))
+    # add hidden layer
+    model.add(Dense(32, activation='relu'))
+    # add output layer with the number of classes in y_train
+    model.add(Dense(len(y_train.unique()), activation='softmax'))
+
+    # compile the model
+    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+    # fit the model on training data
+    model.fit(X_train, pd.get_dummies(y_train), epochs=10, batch_size=32)
+
+    # make predictions on test data
+    y_pred = model.predict(X_test)
+    y_pred_classes = [y.argmax() for y in y_pred]
+    y_test_classes = [y.argmax() for y in pd.get_dummies(y_test).values]
+
+    # print classification report with precision and accuracy scores
+    print(classification_report(y_test_classes, y_pred_classes))
 
 def main():
     data = read_data("https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data")
@@ -452,6 +486,9 @@ def main():
 
     # run the naive bayes classification
     naive_bayes(data)
+    
+    # run the ann classification
+    ann(data)
 
     # export transformed data set to csv
     output_filename = "projectPart3Output.csv"
