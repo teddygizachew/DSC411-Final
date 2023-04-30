@@ -13,6 +13,9 @@ from kneed import KneeLocator
 from sklearn.preprocessing import normalize
 import matplotlib as mpl
 from sklearn.cluster import DBSCAN
+from sklearn.naive_bayes import GaussianNB
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
 
 
 class ClusteringMethod(Enum):
@@ -329,6 +332,53 @@ def outlier_plot(data, outlier_method_name):
     print(f"Percentage of outliers detected: {percent_outliers:.2f}%")
 
 
+def naive_bayes(data):
+    # pd.set_option('display.max_rows', None)
+    # pd.set_option('display.max_columns', None)
+
+    # Perform one-hot encoding on the categorical variables (for classification purposes)
+    cat_vars = ['workclass', 'mariatal_status', 'occupation', 'relationship', 'race', 'sex', 'native_country']
+    for var in cat_vars:
+        cat_list = pd.get_dummies(data[var], prefix=var)
+        data = data.join(cat_list)
+
+    data = data.drop(cat_vars, axis=1)
+
+    # Drop class label
+    data['census_income'] = data['census_income'].apply(lambda x: 0 if x == '<=50K' else 1)
+
+    x_train, x_test, y_train, y_test = train_test_split(data, data["census_income"], test_size=0.2)
+
+    # gaussian classifier
+    mdl = GaussianNB().fit(x_train, y_train)
+
+    print(f"Model accuracy: {mdl.score(x_test, y_test)*100:.2f}%")
+
+    results = pd.DataFrame({'actual': y_test, 'predicted': mdl.predict(x_test)})
+    print(results.head())
+
+    # Predict on test data
+    y_pred = mdl.predict(x_test)
+
+    # Create confusion matrix
+    cm = confusion_matrix(y_test, y_pred)
+
+    # Plot confusion matrix
+    sns.heatmap(cm, annot=True, cmap='Blues', fmt='g')
+    plt.title('Confusion matrix for Naive Bayes classifier')
+    plt.xlabel('Predicted')
+    plt.ylabel('Actual')
+    plt.show()
+
+    print("\nTest Data:")
+    print(y_test.head(7))
+    print("\nPredictions:")
+    print(mdl.predict(x_test)[:7])
+    print("\nProbability of predictions:")
+    print(mdl.predict_proba(x_test)[:7])
+    print(f"\nCross val score: {cross_val_score(GaussianNB(), x_train, y_train, cv=3)}")
+
+
 def main():
     data = read_data("adult.csv")
 
@@ -344,13 +394,16 @@ def main():
     # cluster(data_cleaned, method=ClusteringMethod.ELBOW)
 
     # run DBSCAN outlier detection
-    dbscan_outliers_list = dbscan_outliers(data_cleaned)
+    # dbscan_outliers_list = dbscan_outliers(data_cleaned)
 
-    iso_forest_list = isolation_forest(data_cleaned)
+    # iso_forest_list = isolation_forest(data_cleaned)
 
     # add outlier labels to output dataset for side-by-side comparison
-    data['dbscan_outliers'] = dbscan_outliers_list
-    data['iso_forest_outliers'] = iso_forest_list
+    # data['dbscan_outliers'] = dbscan_outliers_list
+    # data['iso_forest_outliers'] = iso_forest_list
+
+    # naive bayes
+    naive_bayes(data_cleaned)
 
     # export transformed data set to csv
     output_filename = "projectPart2Output.csv"
