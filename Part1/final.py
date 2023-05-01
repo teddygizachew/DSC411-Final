@@ -70,14 +70,6 @@ def classify(data):
         print(f"Split: {100 - (100 * test_size)} - {100 * test_size}")
         print("Accuracy on test set:", dt.score(X_test, y_test))
 
-        # Perform 5-fold cross-validation on the training set
-        cv_scores = cross_val_score(dt, X_train, y_train, cv=5)
-        print("Accuracy on 5-fold cross-validation:", cv_scores.mean())
-
-        # Perform 10-fold cross-validation on the training set
-        cv_scores = cross_val_score(dt, X_train, y_train, cv=10)
-        print("Accuracy on 10-fold cross-validation:", cv_scores.mean())
-
         # Generate the classification report
         y_pred = dt.predict(X_test)
         report = classification_report(y_test, y_pred)
@@ -87,6 +79,14 @@ def classify(data):
         plt.figure(figsize=(50, 10))
         plot_tree(dt, filled=True, feature_names=data.columns[:-1], class_names=["<=50K", ">50K"], fontsize=5)
         plt.show()
+        
+    # Perform 5-fold cross-validation on the entire dataset
+    cv_scores_5 = cross_val_score(dt, data.drop('census_income', axis=1), data['census_income'], cv=5)
+    print("Accuracy on 5-fold cross-validation:", cv_scores_5.mean())
+
+    # Perform 10-fold cross-validation on the entire dataset
+    cv_scores_10 = cross_val_score(dt, data.drop('census_income', axis=1), data['census_income'], cv=10)
+    print("Accuracy on 10-fold cross-validation:", cv_scores_10.mean())
 
 
 def cluster(data, method):
