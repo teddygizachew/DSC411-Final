@@ -2,6 +2,7 @@ import time
 from enum import Enum
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from kneed import KneeLocator
 from sklearn.cluster import DBSCAN
@@ -410,11 +411,20 @@ def naive_bayes(data):
     cm = confusion_matrix(y_test, y_pred)
 
     # Plot confusion matrix
-    sns.heatmap(cm, annot=True, cmap='Blues', fmt='g')
+    sns.heatmap(cm/np.sum(cm), annot=True, cmap='Blues', fmt='.2%')
     plt.title('Confusion matrix for Naive Bayes classifier')
     plt.xlabel('Predicted')
     plt.ylabel('Actual')
+    plt.xticks([0.5, 1.5], ['0 (Neg)', '1 (Pos)'])
+    plt.yticks([0.5, 1.5], ['0 (Neg)', '1 (Pos)'])
+    plt.annotate(f"TN: {cm[0][0]}", (0.2, 0.8), xycoords='axes fraction')
+    plt.annotate(f"FP: {cm[0][1]}", (0.6, 0.8), xycoords='axes fraction')
+    plt.annotate(f"FN: {cm[1][0]}", (0.2, 0.2), xycoords='axes fraction')
+    plt.annotate(f"TP: {cm[1][1]}", (0.6, 0.2), xycoords='axes fraction')
     plt.show()
+
+    target_names = ['<=50K', '>50K']
+    print(classification_report(y_test, y_pred, target_names=target_names))
 
     print("\nTest Data:")
     print(y_test.head(7))
@@ -486,7 +496,7 @@ def main():
 
     # run the naive bayes classification
     naive_bayes(data)
-    
+
     # run the ann classification
     ann(data)
 
